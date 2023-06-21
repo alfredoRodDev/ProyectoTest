@@ -1,0 +1,28 @@
+version: '3.4'
+
+services:
+  sqlServer_db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=password12345
+    restart: always
+    volumes:
+      - dbdata:/var/opt/mssql
+    ports:
+      - 18002:1433
+
+  devsu.project.api:
+    image: ${DOCKER_REGISTRY-}devsuprojectapi
+    build:
+      context: .
+      dockerfile: src/devsu.project.API/Dockerfile
+    restart: always
+    depends_on:
+      - sqlServer_db
+    ports:
+      - "5041:80"
+
+volumes:
+  dbdata:
+
