@@ -61,6 +61,36 @@ namespace devsu.project.Application.Features.Movimientos.Commands.UpdateMovimien
                 }
             }
 
+            //validar que el saldo no sea menor a 0
+            if(entity.Cuenta.SaldoActual < 0)
+            {
+                return Response<CreateMovimientoDTO>.Failure("¡El saldo no puede ser menor a 0!", null);
+            }
+
+            //validar que si retiro no sea mayor a 1000
+            if(entity.TipoDeMovimiento == Domain.Enums.TipoDeMovimiento.Retiro && entity.Valor > 1000)
+            {
+                return Response<CreateMovimientoDTO>.Failure("¡Cupo Excedido!", null);
+            }
+
+            if(entity.TipoDeMovimiento == Domain.Enums.TipoDeMovimiento.Retiro)
+            {
+                //validar retiros diarios
+                var retirosDelDia = await _dbContext
+                    .Movimientos
+                    .Where(x => x.TipoDeMovimiento == Domain.Enums.TipoDeMovimiento.Retiro 
+                    && x.CreateAt.Date == entity.CreateAt.Date && x.CuentaId == entity.CuentaId && x.Id != request.Id)
+                    .SumAsync(x => x.Valor);
+
+                var retiros = retirosDelDia + request.Valor;
+
+                if (retiros > 1000)
+                {
+                    return Response<CreateMovimientoDTO>.Failure("¡Cupo Excedido!", null);
+                }
+            }
+
+
             entity.Valor = request.Valor;
 
             var result = await _dbContext.SaveChangesAsync(cancellationToken) >= 1;
